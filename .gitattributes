@@ -1,2 +1,347 @@
-# Auto detect text files and perform LF normalization
-* text=auto
+#include <SFML/Graphics.hpp>
+#include <iostream>
+#include <SFML/Audio.hpp>
+
+using namespace sf;
+using namespace std;
+int main()  
+{
+    RenderWindow window(VideoMode(630, 700), "PACMAN GAME T-11");
+    Texture pacmanscoreTexture;
+    pacmanscoreTexture.loadFromFile("./pacmanscore.png");
+    Sprite pacmanscore(pacmanscoreTexture);
+    pacmanscore.setPosition( 300,640 );
+    pacmanscore.setOrigin(0, 0);
+    Texture pacmanscTexture;
+    pacmanscTexture.loadFromFile("./pacmanscore.png");
+    Sprite pacmansc(pacmanscTexture);
+    pacmansc.setPosition(330, 640);
+    pacmansc.setOrigin(0, 0);
+    Texture pacmansTexture;
+    pacmansTexture.loadFromFile("./pacmanscore.png");
+    Sprite pacmans(pacmansTexture);
+    pacmans.setPosition(360, 640);
+    pacmans.setOrigin(0, 0);
+    Texture pacmanTexture;
+    pacmanTexture.loadFromFile("./pacman-spritesheet.png");
+    Sprite pacman(pacmanTexture);
+    pacman.setPosition(32.6, 285);
+    pacman.setOrigin(16.3, 15);
+    pacman.setTextureRect(IntRect(0, 0, 33, 30));
+    int animation_indicator = 0;
+    int x = 0, y = 0;
+    Clock clock, animation_clock;
+    bool isfoodVisable = true;
+    float deltatime = 0;
+    SoundBuffer buffer;
+    buffer.loadFromFile("pacman_eatghost.wav");
+    Sound sound;
+    sound.setBuffer(buffer);
+    SoundBuffer pac;
+    pac.loadFromFile("pacman_intermission.wav");
+    Sound game;
+    game.setBuffer(pac);
+    SoundBuffer man;
+    man.loadFromFile("pacman_death.wav");
+    Sound death;
+    death.setBuffer(man);
+    Music music;
+    music.openFromFile("pacman background music.ogg");
+    music.play();
+   int score=0;
+   int opps = 0;
+   Font font;
+   font.loadFromFile("font.ttf");
+   Text text;
+    text.setFont(font);
+    text.setString("Score: " + to_string(score));
+    text.setFillColor(Color(50, 205, 50, 255));
+    text.setPosition(30, 630);
+    text.setCharacterSize(30);
+    Text win;
+    win.setFont(font);
+    win.setString("YOU WIN!");
+    win.setFillColor(Color(50, 206, 55,255));
+    win.setPosition(200, 300);
+    win.setCharacterSize(100);
+    Text lose;
+    lose.setFont(font);
+    lose.setString("GAME OVER");
+    lose.setFillColor(Color(50, 206, 55, 255));
+    lose.setPosition(150, 300);
+    lose.setCharacterSize(70);
+    Texture ghostredTexture, ghostblueTexture, ghostgreenTexture;
+    ghostredTexture.loadFromFile("./ghostred.png");
+    Sprite ghostred(ghostredTexture);
+    ghostred.setPosition(60, 90);
+    float ghostredS = 0.1;
+    ghostblueTexture.loadFromFile("./ghostblue.png");
+    Sprite ghostblue(ghostblueTexture);
+    ghostblue.setPosition(60, 570);
+    float ghostblueS = 0.1;
+    ghostgreenTexture.loadFromFile("./ghostgreen.png");
+    Sprite ghostgreen(ghostgreenTexture);
+    ghostgreen.setPosition(450, 390);
+    float ghostgreenS = -0.1;
+    bool(isTouching) = false;
+
+    int mapData[21][21] = {
+      {0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0},
+      {0,1,3,3,3,3,3,3,3,3,1,3,3,3,3,3,3,3,3,1,0},
+      {0,1,3,1,1,3,1,1,1,3,1,3,1,1,1,3,1,1,3,1,0},
+      {0,1,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,1,0},
+      {0,1,3,1,1,3,1,3,1,1,1,1,1,3,1,3,1,1,3,1,0},
+      {0,1,3,3,3,3,1,3,3,3,1,3,3,3,1,3,3,3,3,1,0},
+      {0,1,1,1,1,3,1,1,1,0,1,0,1,1,1,3,1,1,1,1,0},
+      {0,0,0,0,1,3,1,0,0,0,0,0,0,0,1,3,1,0,0,0,0},
+      {1,1,1,1,1,3,1,0,1,1,1,1,1,0,1,3,1,1,1,1,1},
+      {2,0,0,0,0,3,0,0,1,0,0,0,1,0,0,3,0,0,0,0,0},
+      {1,1,1,1,1,3,1,0,1,1,1,1,1,0,1,3,1,1,1,1,1},
+      {0,0,0,0,1,3,1,0,0,0,0,0,0,0,1,3,1,0,0,0,0},
+      {0,1,1,1,1,3,1,0,1,1,1,1,1,0,1,3,1,1,1,1,0},
+      {0,1,3,3,3,3,3,3,3,3,1,3,3,3,3,3,0,0,0,1,0},
+      {0,1,3,1,1,3,1,1,1,3,1,3,1,1,1,3,1,1,3,1,0},
+      {0,1,3,3,1,3,3,3,3,3,3,3,3,3,3,3,1,3,3,1,0},
+      {0,1,1,3,1,3,1,3,1,1,1,1,1,3,1,3,1,3,1,1,0},
+      {0,1,3,3,3,3,1,3,3,3,1,3,3,3,1,3,3,3,3,1,0},
+      {0,1,3,1,1,1,1,1,1,3,1,3,1,1,1,1,1,1,3,1,0},
+      {0,1,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,1,0},
+      {0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0}
+    };
+
+
+
+
+
+    RectangleShape s[21][21];
+    for (int i = 0; i < 21; i++) {
+        for (int j = 0; j < 21; j++) {
+            s[i][j].setSize(Vector2f(30, 30));
+            if (mapData[j][i] == 1) {
+                s[i][j].setPosition(i * 30, j * 30);
+            }
+            
+            s[i][j].setFillColor(Color::Color(0, 0, 255));
+
+        }
+    }
+    CircleShape f[21][21];
+    for (int x = 0; x < 21; x++) {
+        for (int y = 0; y < 21; y++) {
+            f[x][y].setRadius(4);
+            if (mapData[y][x] == 3) {
+                f[x][y].setPosition(x * 30.8, y * 30.8);
+            }
+        }
+    }
+
+
+    while (window.isOpen()) {
+
+        Event event;
+        
+       deltatime = clock.restart().asSeconds();
+
+
+        //handle all event
+        while (window.pollEvent(event)) {
+          
+
+                if (event.type == Event::Closed) {
+                    window.close();
+                }
+                if (Keyboard::isKeyPressed(Keyboard::Right)) {
+                    pacman.move(Vector2f(700*deltatime, 0));
+                    pacman.setRotation(360);
+                    pacman.setScale(0.6, 0.6);
+                   
+                    for (int i = 0; i < 21; i++) {
+                        for (int j = 0; j < 21; j++) {
+                            if (pacman.getGlobalBounds().intersects(s[i][j].getGlobalBounds()))
+                                pacman.move(Vector2f(-700*deltatime, 0));
+                        }
+                    }
+                    animation_indicator++;
+                }
+                animation_indicator = animation_indicator % 3;
+                if (animation_indicator > 2) {
+                    animation_indicator = 0;
+                }
+                pacman.setTextureRect(IntRect(animation_indicator * 33, 0, 32.6, 30));
+                if (Keyboard::isKeyPressed(Keyboard::Left)) {
+                    pacman.move(Vector2f(-700*deltatime, 0));
+                    pacman.setRotation(180);
+                    pacman.setScale(0.6, -0.6);
+                    
+                    for (int i = 0; i < 21; i++) {
+                        for (int j = 0; j < 21; j++) {
+                            if (pacman.getGlobalBounds().intersects(s[i][j].getGlobalBounds()))
+                                pacman.move(Vector2f(700*deltatime, 0));
+                        }
+                    }
+                    animation_indicator++;
+                }
+                animation_indicator = animation_indicator % 3;
+                if (animation_indicator > 2) {
+                    animation_indicator = 0;
+                }
+                pacman.setTextureRect(IntRect(animation_indicator * 33, 0, 32.6, 30));
+                if (Keyboard::isKeyPressed(Keyboard::Up)) {
+                    pacman.setRotation(270);
+                    pacman.move(Vector2f(0, -700*deltatime));
+                    
+                    for (int i = 0; i < 21; i++) {
+                        for (int j = 0; j < 21; j++) {
+                            if (pacman.getGlobalBounds().intersects(s[i][j].getGlobalBounds()))
+                                pacman.move(Vector2f(0, 700*deltatime));
+                        }
+                    }
+                    animation_indicator++;
+                }
+                animation_indicator = animation_indicator % 3;
+                if (animation_indicator > 2) {
+                    animation_indicator = 0;
+                }
+                pacman.setTextureRect(IntRect(animation_indicator * 33, 0, 32.6, 30));
+                if (Keyboard::isKeyPressed(Keyboard::Down)) {
+                    pacman.setRotation(90);
+                    pacman.move(Vector2f(0, 700*deltatime));
+                    
+                    for (int i = 0; i < 21; i++) {
+                        for (int j = 0; j < 21; j++) {
+                            if (pacman.getGlobalBounds().intersects(s[i][j].getGlobalBounds()))
+                                pacman.move(Vector2f(0, -700*deltatime));
+                        }
+                    }
+                    animation_indicator++;
+                }
+                animation_indicator = animation_indicator % 3;
+                if (animation_indicator > 2) {
+                    animation_indicator = 0;
+                }
+                pacman.setTextureRect(IntRect(animation_indicator * 33, 0, 32.6, 30));
+            
+
+           /* else {
+                animation_indicator = 0;
+                pacman.setTextureRect(IntRect(animation_indicator * 33, 0, 32.6, 30));
+
+            } */
+        }
+      /* for (int i = 0; i < 21; i++) {
+            for (int j = 0; j < 21; j++) {
+
+                if (pacman.getGlobalBounds().intersects(s[i][j].getGlobalBounds()))
+                    pacman.move(-1, -1);
+
+            }
+        }*/
+        ghostred.move(Vector2f(ghostredS, 0));
+        for (int i = 0; i < 21; i++) {
+            for (int j = 0; j < 21; j++) {
+                if (ghostred.getGlobalBounds().intersects(s[i][j].getGlobalBounds())) {
+                    ghostredS = -ghostredS;
+                   
+                }
+            }
+        }
+        ghostblue.move(Vector2f(ghostblueS, 0));
+        for (int i = 0; i < 21; i++) {
+            for (int j = 0; j < 21; j++) {
+                if (ghostblue.getGlobalBounds().intersects(s[i][j].getGlobalBounds())) {
+                    ghostblueS = -ghostblueS;
+                    
+                }
+            }
+        }
+        ghostgreen.move(Vector2f(0, ghostgreenS));
+        for (int i = 0; i < 21; i++) {
+            for (int j = 0; j < 21; j++) {
+                if (ghostgreen.getGlobalBounds().intersects(s[i][j].getGlobalBounds())) {
+                    ghostgreenS = -ghostgreenS;
+                    
+                }
+            }
+        }
+        if (!pacman.getGlobalBounds().intersects(ghostred.getGlobalBounds()) && 
+            !pacman.getGlobalBounds().intersects(ghostblue.getGlobalBounds()) &&
+            !pacman.getGlobalBounds().intersects(ghostgreen.getGlobalBounds())) {
+           isTouching = false;
+        }
+        if (pacman.getGlobalBounds().intersects(ghostred.getGlobalBounds()) && isTouching == false) {
+            isTouching = true;
+            opps++;
+            if (opps < 3) { game.play(); }
+            if(opps==3) { death.play(); }
+            pacman.setPosition(32.6, 285);
+
+        } 
+        if (pacman.getGlobalBounds().intersects(ghostblue.getGlobalBounds() )&& isTouching ==false ){
+           isTouching = true;
+                opps++;
+                if (opps < 3) { game.play(); }
+                if (opps == 3) { death.play(); }
+                pacman.setPosition(32.6, 285);
+                   
+            }
+        if (pacman.getGlobalBounds().intersects(ghostgreen.getGlobalBounds()) && isTouching == false) {
+          isTouching = true;
+            opps++;
+            if (opps < 3) { game.play(); }
+            if (opps == 3) { death.play(); }
+            pacman.setPosition(32.6, 285);
+        }
+               
+           
+        
+             window.clear();
+
+            for (int i = 0; i < 21; i++) {
+                for (int j = 0; j < 21; j++) {
+                    if (mapData[i][j] == 1) {
+
+
+                        window.draw(s[j][i]);
+                    }
+                    
+
+                }
+            }
+            for (int x = 0; x < 21; x++) {
+                for (int y = 0; y < 21; y++) {
+                    if (mapData[x][y] == 3) window.draw(f[y][x]);
+                    if (pacman.getGlobalBounds().intersects(f[y][x].getGlobalBounds())) {
+                        f[y][x].setScale(0, 0);
+                        sound.play();
+                        score++;
+                        text.setString("Score: " + to_string(score));
+                    }
+                }
+            }
+           
+            music.setLoop(true);
+            if (opps < 3)
+            {
+                window.draw(pacman);
+            }
+            window.draw(ghostred);
+            window.draw(ghostblue);
+            window.draw(ghostgreen);
+            window.draw(pacmanscore);
+            window.draw(pacmansc);
+            window.draw(pacmans);
+            window.draw(text);
+            if (opps == 3) 
+                window.draw(lose);
+            if (opps == 3)
+                pacmans.setScale(0, 0);
+            if (opps == 2)
+                pacmansc.setScale(0, 0);
+            if (opps == 1)
+                pacmanscore.setScale(0, 0);
+         
+            if (score == 148)   window.draw(win);
+            window.display();
+        } 
+    } 
+
